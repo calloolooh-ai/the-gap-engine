@@ -4,6 +4,23 @@ from pydantic import BaseModel
 from models.graph import GraphExport
 
 
+class PaperRef(BaseModel):
+    """A lightweight reference to a real source paper (from OpenAlex)."""
+    paper_id: str
+    title: str
+    year: int | None = None
+    citation_count: int = 0
+
+
+class GapEvidence(BaseModel):
+    """Real-paper provenance behind a detected gap."""
+    count_a: int            # papers mentioning concept A
+    count_b: int            # papers mentioning concept B
+    count_both: int         # papers mentioning BOTH (the gap: typically 0)
+    sample_a: list[PaperRef] = []
+    sample_b: list[PaperRef] = []
+
+
 class Gap(BaseModel):
     gap_id: str
     type: str  # "structural"|"cross_domain"
@@ -14,6 +31,7 @@ class Gap(BaseModel):
     field_b: str
     leverage_score: float  # 0-100
     score_components: dict
+    evidence: GapEvidence | None = None
     question: dict | None = None
 
 

@@ -39,24 +39,27 @@ export const QuestionCard: React.FC<Props> = ({
         <span style={styles.nodeTag}>{gap.node_b.replace(/_/g, " ")}</span>
       </div>
 
-      {/* Score components */}
+      {/* Score components — all values are normalised to [0,1]; clamp for safety */}
       <div style={styles.components}>
-        {Object.entries(gap.score_components).map(([key, val]) => (
-          <div key={key} style={styles.componentRow}>
-            <span style={styles.componentLabel}>
-              {key.replace(/_/g, " ")}
-            </span>
-            <div style={styles.componentBarTrack}>
-              <div
-                style={{
-                  ...styles.componentBarFill,
-                  width: `${Math.round(val * 100)}%`,
-                }}
-              />
+        {Object.entries(gap.score_components).map(([key, val]) => {
+          const pct = Math.max(0, Math.min(100, Math.round(val * 100)));
+          return (
+            <div key={key} style={styles.componentRow}>
+              <span style={styles.componentLabel}>
+                {key.replace(/_/g, " ")}
+              </span>
+              <div style={styles.componentBarTrack}>
+                <div
+                  style={{
+                    ...styles.componentBarFill,
+                    width: `${pct}%`,
+                  }}
+                />
+              </div>
+              <span style={styles.componentVal}>{val.toFixed(2)}</span>
             </div>
-            <span style={styles.componentVal}>{val.toFixed(2)}</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Bridging concepts */}
@@ -71,25 +74,50 @@ export const QuestionCard: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Discovery Story */}
-      <div style={styles.storySection}>
-        <div style={styles.sectionLabel}>Discovery Story</div>
-        <p style={styles.storyText}>
-          <strong style={{ color: "#e5e7eb" }}>{gap.node_a.replace(/_/g, " ")}</strong>
-          {" "}has been studied in <em>{gap.field_a}</em> for decades.{" "}
-          <strong style={{ color: "#e5e7eb" }}>{gap.node_b.replace(/_/g, " ")}</strong>
-          {" "}has been studied in <em>{gap.field_b}</em> for decades.
-          {gap.field_a !== gap.field_b
-            ? " These two fields have never shared a paper."
-            : " These two concepts have never been studied together."}
-          {" "}Closing this gap could unlock{" "}
-          <strong style={{ color: "#f59e0b" }}>
-            {gap.score_components.community_reach
-              ? `${Math.round((gap.score_components.community_reach as number) * 10)} related research areas`
-              : "multiple research areas"}
-          </strong>.
-        </p>
-      </div>
+      {/* Evidence — real source papers behind the gap */}
+      {gap.evidence && (
+        <div style={styles.storySection}>
+          <div style={styles.sectionLabel}>Evidence</div>
+          <p style={styles.storyText}>
+            <strong style={{ color: "#f59e0b" }}>{gap.evidence.count_a}</strong> papers mention{" "}
+            <strong style={{ color: "#e5e7eb" }}>{gap.node_a.replace(/_/g, " ")}</strong>,{" "}
+            <strong style={{ color: "#f59e0b" }}>{gap.evidence.count_b}</strong> mention{" "}
+            <strong style={{ color: "#e5e7eb" }}>{gap.node_b.replace(/_/g, " ")}</strong>, but{" "}
+            <strong style={{ color: gap.evidence.count_both === 0 ? "#f59e0b" : "#e5e7eb" }}>
+              {gap.evidence.count_both}
+            </strong>{" "}
+            mention both{gap.evidence.count_both === 0 ? " — an open gap." : "."}
+          </p>
+          {gap.evidence.sample_a.length > 0 && (
+            <div style={styles.evidenceList}>
+              {gap.evidence.sample_a.slice(0, 2).map((p) => (
+                <a
+                  key={p.paper_id}
+                  href={p.paper_id}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={styles.evidencePaper}
+                >
+                  {p.title}
+                  {p.year ? ` (${p.year})` : ""} · {p.citation_count.toLocaleString()} cites
+                </a>
+              ))}
+              {gap.evidence.sample_b.slice(0, 2).map((p) => (
+                <a
+                  key={p.paper_id}
+                  href={p.paper_id}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={styles.evidencePaper}
+                >
+                  {p.title}
+                  {p.year ? ` (${p.year})` : ""} · {p.citation_count.toLocaleString()} cites
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Research Question */}
       {q ? (
@@ -304,6 +332,23 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#9ca3af",
     lineHeight: 1.7,
     margin: 0,
+  },
+  evidenceList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    marginTop: 8,
+  },
+  evidencePaper: {
+    fontSize: 11,
+    color: "#7dd3fc",
+    textDecoration: "none",
+    lineHeight: 1.4,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical" as const,
   },
   noQuestion: {
     padding: "16px",

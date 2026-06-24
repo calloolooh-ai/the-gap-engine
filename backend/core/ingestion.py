@@ -174,9 +174,14 @@ def _openalex_fields(work: dict) -> list[str]:
     return result
 
 
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+
+
 def _parse_openalex_work(work: dict, fallback_field: str, idx: int) -> Paper:
     abstract = _reconstruct_abstract(work.get("abstract_inverted_index"))
     title = work.get("title") or work.get("display_name") or ""
+    # OpenAlex titles occasionally embed HTML (e.g. <i>...</i>) — strip it.
+    title = _HTML_TAG_RE.sub("", title).strip()
 
     concepts = _openalex_concepts(work)
     if not concepts:

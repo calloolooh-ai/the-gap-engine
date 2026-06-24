@@ -37,12 +37,15 @@ def build_graph(
     # -------------------------------------------------------------------------
     concept_paper_count: Counter[str] = Counter()
     concept_fields: defaultdict[str, set[str]] = defaultdict(set)
+    # concept -> list of source papers (for real-evidence provenance behind gaps)
+    concept_papers: defaultdict[str, list[Paper]] = defaultdict(list)
 
     for paper in papers:
         seen_in_paper: set[str] = set()
         for c in paper.concepts:
             if c not in seen_in_paper:
                 concept_paper_count[c] += 1
+                concept_papers[c].append(paper)
                 seen_in_paper.add(c)
             for f in paper.fields_of_study:
                 concept_fields[c].add(f)
@@ -83,11 +86,26 @@ def build_graph(
     G = nx.Graph()
 
     for concept in valid_concepts:
+        src = concept_papers[concept]
+        # Full id set for accurate intersection math; capped metadata sample for display.
+        paper_ids = [p.paper_id for p in src]
+        top = sorted(src, key=lambda p: p.citation_count, reverse=True)[:5]
+        papers_sample = [
+            {
+                "paper_id": p.paper_id,
+                "title": p.title,
+                "year": p.year,
+                "citation_count": p.citation_count,
+            }
+            for p in top
+        ]
         G.add_node(
             concept,
             paper_count=concept_paper_count[concept],
             field=list(concept_fields[concept]),
             community_id=0,  # filled below
+            paper_ids=paper_ids,
+            papers=papers_sample,
         )
 
     for (a, b), weight in edge_weight.items():
