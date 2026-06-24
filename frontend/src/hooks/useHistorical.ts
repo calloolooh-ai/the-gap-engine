@@ -56,9 +56,10 @@ export function useHistorical(): HistoricalState {
         const data = await getHistoricalResult(job_id);
         return data;
       };
-      // Simple retry loop
+      // Poll until the background pipeline completes (202 while running).
+      // The 4-field OpenAlex fetch can take a while, so allow ~3 minutes.
       let attempts = 0;
-      while (attempts < 30) {
+      while (attempts < 90) {
         try {
           const data = await poll();
           setResult(data);

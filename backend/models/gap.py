@@ -1,6 +1,8 @@
 from __future__ import annotations
 from pydantic import BaseModel
 
+from models.graph import GraphExport
+
 
 class Gap(BaseModel):
     gap_id: str
@@ -26,12 +28,18 @@ class ResearchQuestion(BaseModel):
     generated_at: str
 
 
-class HistoricalValidationResult(BaseModel):
-    job_id: str
-    target_gap: str
-    engine_detected: bool
-    detected_gap: Gap | None = None
-    known_gap_description: str
+class HistoricalTargetGap(BaseModel):
+    name: str
+    description: str
     actual_discovery_year: int
     key_papers: list[str]
-    completed_at: str
+
+
+class HistoricalValidationResult(BaseModel):
+    job_id: str
+    target_gap: HistoricalTargetGap
+    engine_detected: bool
+    engine_gap: Gap | None = None
+    engine_question: ResearchQuestion | None = None
+    graph_export: GraphExport
+    validation_text: str
