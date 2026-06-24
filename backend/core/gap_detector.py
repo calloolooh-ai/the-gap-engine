@@ -18,7 +18,7 @@ from itertools import combinations
 import networkx as nx
 import numpy as np
 
-from models.gap import Gap
+from models.gap import Gap, GapEvidence, PaperRef
 
 # Maximum number of candidates to evaluate (performance guard)
 _MAX_STRUCTURAL_CANDIDATES = 5000
@@ -29,6 +29,36 @@ _MAX_GAPS_RETURNED = 200
 def _primary_field(G: nx.Graph, node: str) -> str:
     fields = G.nodes[node].get("field", [])
     return fields[0] if fields else "Unknown"
+
+
+def _paper_refs(G: nx.Graph, node: str) -> list[PaperRef]:
+    """Build display PaperRefs from a node's stored paper sample."""
+    refs: list[PaperRef] = []
+    for p in G.nodes.get(node, {}).get("papers", []):
+        refs.append(
+            PaperRef(
+                paper_id=p.get("paper_id", ""),
+                title=p.get("title", "") or "(untitled)",
+                year=p.get("year"),
+                citation_count=p.get("citation_count", 0) or 0,
+            )
+        )
+    return refs
+
+
+def _attach_evidence(G: nx.Graph, gap: Gap) -> None:
+    """Compute real-paper provenance for a gap from node attributes."""
+    a_data = G.nodes.get(gap.node_a, {})
+    b_data = G.nodes.get(gap.node_b, {})
+    a_ids = set(a_data.get("paper_ids", []))
+    b_ids = set(b_data.get("paper_ids", []))
+    gap.evidence = GapEvidence(
+        count_a=a_data.get("paper_count", len(a_ids)),
+        count_b=b_data.get("paper_count", len(b_ids)),
+        count_both=len(a_ids & b_ids),
+        sample_a=_paper_refs(G, gap.node_a)[:3],
+        sample_b=_paper_refs(G, gap.node_b)[:3],
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -216,4 +246,7 @@ def _detect_cross_domain_gaps(G: nx.Graph) -> list[Gap]:
 def detect_gaps(G: nx.Graph) -> list[Gap]:
     structural = _detect_structural_gaps(G)
     cross_domain = _detect_cross_domain_gaps(G)
-    return structural + cross_domain
+    gaps = structural + cross_domain
+    for gap in gaps:
+        _attach_evidence(G, gap)
+    return gaps

@@ -62,6 +62,21 @@ export interface GraphExport {
   failed_fields?: string[];
 }
 
+export interface PaperRef {
+  paper_id: string;
+  title: string;
+  year: number | null;
+  citation_count: number;
+}
+
+export interface GapEvidence {
+  count_a: number;
+  count_b: number;
+  count_both: number;
+  sample_a: PaperRef[];
+  sample_b: PaperRef[];
+}
+
 export interface Gap {
   gap_id: string;
   type: "structural" | "cross_domain";
@@ -77,6 +92,7 @@ export interface Gap {
     paper_velocity: number;
     cross_domain_bonus: number;
   };
+  evidence?: GapEvidence | null;
   question?: ResearchQuestion;
 }
 
