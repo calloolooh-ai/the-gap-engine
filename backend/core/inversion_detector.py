@@ -54,24 +54,39 @@ _VERB_RE = re.compile(
 _WINDOW = 110
 
 # Minimum forward assertions before we treat the missing inverse as a real gap.
-_MIN_FORWARD = 1
+_MIN_FORWARD = 2
 _MAX_RETURNED = 40
+
+# Generic stopword concepts that add noise (single words or content-free terms).
+_JUNK_CONCEPTS = {
+    "simple", "model", "data", "analysis", "study", "result", "method",
+    "approach", "process", "system", "function", "type", "form", "case",
+    "effect", "factor", "level", "rate", "role", "state", "term", "value",
+}
 
 
 def _concept_spans(text: str, concepts: list[str]) -> list[tuple[int, int, str]]:
     """Return (start, end, concept) for every concept mention in text."""
     spans: list[tuple[int, int, str]] = []
     for c in concepts:
-        if len(c) < 3:
+        # Require at least 4 chars and at least 2 words (multi-word concepts only)
+        # OR at least 6 chars for single-word scientific terms.
+        # Skip generic stopword concepts.
+        stripped = c.strip()
+        if len(stripped) < 4:
+            continue
+        word_count = len(stripped.split())
+        if word_count == 1 and len(stripped) < 6:
+            continue
+        if stripped.lower() in _JUNK_CONCEPTS:
             continue
         start = 0
-        cl = c
         while True:
-            idx = text.find(cl, start)
+            idx = text.find(stripped, start)
             if idx == -1:
                 break
-            spans.append((idx, idx + len(cl), c))
-            start = idx + len(cl)
+            spans.append((idx, idx + len(stripped), stripped))
+            start = idx + len(stripped)
     return spans
 
 
@@ -178,8 +193,8 @@ def detect_inversions(
                 "example_titles": directed_titles[(a, b)],
                 "statement": f"{a} {verb} {b}",
                 "inverse_question": (
-                    f"Does {b} also affect {a}? "
-                    f"{fwd} paper(s) study \"{a} {verb} {b}\" — "
+                    f"Does {b} {verb} {a}? "
+                    f"{fwd} paper(s) assert \"{a} {verb} {b}\" — "
                     f"none test the reverse direction."
                 ),
             }

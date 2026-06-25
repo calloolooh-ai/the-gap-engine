@@ -105,6 +105,7 @@ function App() {
               graphData={activeGraphData}
               onBuild={handleBuild}
             />
+            <InversionPanel graphData={activeGraphData} />
             <ModeToggle
               isHistorical={isHistorical}
               isRunning={isHistoricalRunning}
@@ -163,7 +164,6 @@ function App() {
         </div>
       </div>
 
-      <InversionPanel graphData={activeGraphData} />
     </>
   );
 }

@@ -16,7 +16,6 @@ from config import CORS_ORIGINS
 from api.routes_graph import router as graph_router
 from api.routes_gaps import router as gaps_router
 from api.routes_historical import router as historical_router
-from api.routes_chat import router as chat_router
 from api.routes_inversions import router as inversions_router
 from api.routes_persistence import router as persistence_router
 
@@ -43,7 +42,6 @@ app.add_middleware(
 app.include_router(graph_router)
 app.include_router(gaps_router)
 app.include_router(historical_router)
-app.include_router(chat_router)
 app.include_router(inversions_router)
 app.include_router(persistence_router)
 

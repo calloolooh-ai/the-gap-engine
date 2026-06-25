@@ -91,7 +91,7 @@ def _construct_target_gap(G) -> Gap | None:
     rank out even though it is a genuine structural void (the two concepts are
     present but never share an edge). Here we find the most important
     network-side and epi-side concepts that are NOT connected and present that
-    pair — exactly the gap the engine is meant to flag.
+    pair -- exactly the gap the engine is meant to flag.
     """
     import uuid
 
@@ -171,14 +171,17 @@ async def run_historical_validation(job_id: str, state: dict) -> None:
             key_papers=known.get("key_papers", []),
         )
 
-        # Find the gap the engine detected that best matches the known target.
-        # If the generic detector didn't surface it (it caps how many it
-        # returns), construct it directly from the graph's network/epi concepts.
+        # Try to find the target gap using the generic detector alone first.
+        # Only if it fails do we fall back to the term-guided constructor --
+        # and in that case we honestly flag engine_detected=False so the UI
+        # and validation text don't claim credit the engine didn't earn.
         detected_gap: Gap | None = _select_target_gap(scored)
+        used_fallback = False
         if detected_gap is None:
             detected_gap = _construct_target_gap(G)
             if detected_gap is not None:
                 score_gaps(G, [detected_gap])  # fill leverage_score in-place
+                used_fallback = True
 
         # Serialise the graph; ensure the detected gap's edge is flagged so the
         # UI can highlight it in amber, even if it wasn't in the top-N set.
@@ -193,13 +196,15 @@ async def run_historical_validation(job_id: str, state: dict) -> None:
         engine_question = await _maybe_generate_question(detected_gap, G)
 
         validation_text = _build_validation_text(
-            target_gap, detected_gap, engine_question
+            target_gap, detected_gap, engine_question, used_fallback=used_fallback
         )
 
         result = HistoricalValidationResult(
             job_id=job_id,
             target_gap=target_gap,
-            engine_detected=detected_gap is not None,
+            # engine_detected=True only when the *generic* detector found it;
+            # False when we fell back to the term-guided constructor.
+            engine_detected=(detected_gap is not None and not used_fallback),
             engine_gap=detected_gap,
             engine_question=engine_question,
             graph_export=export_data,  # pydantic coerces dict -> GraphExport
@@ -224,7 +229,7 @@ async def _maybe_generate_question(
     gap: Gap | None, G
 ) -> ResearchQuestion | None:
     """
-    Try to generate a research question for the detected gap. Never raises —
+    Try to generate a research question for the detected gap. Never raises --
     if no LLM key is configured or the call fails, returns None so the
     pipeline still completes.
     """
@@ -243,6 +248,8 @@ def _build_validation_text(
     target: HistoricalTargetGap,
     detected: Gap | None,
     question: ResearchQuestion | None,
+    *,
+    used_fallback: bool = False,
 ) -> str:
     """Human-readable narrative summarising the validation outcome."""
     if detected is None:
@@ -253,18 +260,35 @@ def _build_validation_text(
             f"({'; '.join(target.key_papers) or 'see key papers'})."
         )
 
+    if used_fallback:
+        # The generic detector didn't rank the gap highly enough -- we found it
+        # by reconstructing it from known network/epi term anchors. Honest framing.
+        parts = [
+            f"The engine's generic gap detector did not independently surface the "
+            f"'{target.name}' gap in the top results from this 2005 corpus slice. "
+            f"However, the structural void is reconstructible directly from the graph: "
+            f"'{detected.node_a}' and '{detected.node_b}' are both present but share "
+            f"no direct path -- confirming the gap existed computationally. "
+            f"(Seeded validation: the target was known from the {target.actual_discovery_year} "
+            f"discovery by Pastor-Satorras & Vespignani.)"
+        ]
+        if target.key_papers:
+            parts.append("Key bridging paper: " + target.key_papers[0] + ".")
+        return " ".join(parts)
+
+    # Generic detector genuinely found it -- this is real proof.
     parts = [
         f"Running only on literature before {target.actual_discovery_year}, the engine "
-        f"flagged the structural gap between '{detected.node_a}' and '{detected.node_b}' "
-        f"(leverage {detected.leverage_score:.0f}/100) — the same gap later closed by the "
-        f"'{target.name}' discovery in {target.actual_discovery_year}."
+        f"independently flagged the structural gap between '{detected.node_a}' and "
+        f"'{detected.node_b}' (leverage {detected.leverage_score:.0f}/100) -- the same "
+        f"gap later closed by the '{target.name}' discovery in {target.actual_discovery_year}."
     ]
     if target.key_papers:
         parts.append("That gap was bridged by: " + "; ".join(target.key_papers) + ".")
     if question is not None:
         parts.append(
             "The engine's generated research question mirrors the actual research "
-            f"direction: “{question.question}”"
+            f"direction: \"{question.question}\""
         )
     parts.append(
         "Proof in hindsight that the gap was computationally visible years before "
