@@ -266,6 +266,16 @@ function HistoricalSplitScreen({
   selectedGapId,
   onGapClick,
 }: HistoricalSplitScreenProps) {
+  // Defensive guard: if the result arrives without its core fields (e.g. a
+  // still-running 202 body leaked through), render a lightweight loading
+  // state rather than throwing and blanking the whole page.
+  if (!result?.target_gap || !result?.graph_export) {
+    return (
+      <div style={{ ...splitStyles.noGraph, height: "100%" }}>
+        Running historical validation…
+      </div>
+    );
+  }
   return (
     <div style={splitStyles.container}>
       {/* Left: 2005 graph */}

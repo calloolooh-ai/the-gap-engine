@@ -51,23 +51,35 @@ export function useHistorical(): HistoricalState {
     setError(null);
     try {
       const { job_id } = await runHistorical();
-      // Poll for result
-      const poll = async (): Promise<HistoricalValidationResult> => {
-        const data = await getHistoricalResult(job_id);
-        return data;
-      };
-      // Poll until the background pipeline completes (202 while running).
+      // Poll until the background pipeline completes. While the job is still
+      // running the backend returns 202 with a `{detail}` body — which is a 2xx,
+      // so apiFetch resolves it instead of throwing. Guard against that by only
+      // accepting a payload that actually carries the validation result; treat
+      // everything else (202 bodies, 404/500, network blips) as "keep polling".
       // The 4-field OpenAlex fetch can take a while, so allow ~3 minutes.
+      const isComplete = (
+        d: unknown
+      ): d is HistoricalValidationResult =>
+        !!d &&
+        typeof d === "object" &&
+        "target_gap" in d &&
+        !!(d as HistoricalValidationResult).target_gap &&
+        "graph_export" in d &&
+        !!(d as HistoricalValidationResult).graph_export;
+
       let attempts = 0;
       while (attempts < 90) {
         try {
-          const data = await poll();
-          setResult(data);
-          return;
+          const data = await getHistoricalResult(job_id);
+          if (isComplete(data)) {
+            setResult(data);
+            return;
+          }
         } catch {
-          attempts++;
-          await new Promise<void>((r) => setTimeout(r, 2000));
+          // not ready / transient — fall through and retry
         }
+        attempts++;
+        await new Promise<void>((r) => setTimeout(r, 2000));
       }
       throw new Error("Historical validation timed out");
     } catch (e) {
