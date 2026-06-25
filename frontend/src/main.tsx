@@ -11,6 +11,7 @@ createRoot(document.getElementById("root")!).render(
         <Routes>
           <Route path="/" element={<App />} />
           <Route path="/gap/:gapId" element={<App />} />
+          <Route path="/share/:shareId" element={<App />} />
         </Routes>
       </BrowserRouter>
     </ErrorBoundary>

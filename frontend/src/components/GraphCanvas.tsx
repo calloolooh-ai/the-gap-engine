@@ -1,7 +1,7 @@
 import React, { useRef, useCallback, useMemo, useState, useEffect } from "react";
 import ForceGraph2D from "react-force-graph-2d";
 import type { GraphExport, GraphNode, CascadeResult } from "../types";
-import { getCascade } from "../api/inversions";
+import { getCascade, getDemoCascade } from "../api/inversions";
 import {
   getCommunityColor,
   gapColor,
@@ -125,21 +125,35 @@ export const GraphCanvas: React.FC<Props> = ({
     setLinkLabel(null);
   }, [graphData]);
 
-  // Fetch the downstream cascade when a gap is selected on a live graph.
+  // Fetch the downstream cascade when a gap is selected.
+  // For demo mode: always fetch the precomputed demo cascade from /cascade/demo.
+  // For live builds: fetch per-gap cascade from /cascade/{jobId}/{gapId}.
   useEffect(() => {
     const jobId = graphData.job_id;
-    if (!selectedGapId || !jobId || jobId === "demo") {
+    if (!selectedGapId) {
       setCascade(null);
       return;
     }
     let cancelled = false;
-    getCascade(jobId, selectedGapId)
-      .then((res) => {
-        if (!cancelled) setCascade(res.found ? res : null);
-      })
-      .catch(() => {
-        if (!cancelled) setCascade(null);
-      });
+    if (jobId === "demo") {
+      getDemoCascade()
+        .then((res) => {
+          if (!cancelled) setCascade(res.found ? res : null);
+        })
+        .catch(() => {
+          if (!cancelled) setCascade(null);
+        });
+    } else if (jobId) {
+      getCascade(jobId, selectedGapId)
+        .then((res) => {
+          if (!cancelled) setCascade(res.found ? res : null);
+        })
+        .catch(() => {
+          if (!cancelled) setCascade(null);
+        });
+    } else {
+      setCascade(null);
+    }
     return () => {
       cancelled = true;
     };

@@ -1,0 +1,82 @@
+{
+  "gap_id": "gap_struct_d5845d27",
+  "found": true,
+  "new_edge": [
+    "health care",
+    "evidence-based medicine"
+  ],
+  "unlocked_gaps": [
+    {
+      "gap_id": "gap_struct_0f45b93c",
+      "node_a": "health care",
+      "node_b": "strengthening the reporting of observational studies in epidemiology",
+      "distance_before": 2,
+      "distance_after": 2,
+      "centrality_lift": 0.000294
+    },
+    {
+      "gap_id": "gap_struct_36be1648",
+      "node_a": "health care",
+      "node_b": "observational study",
+      "distance_before": 2,
+      "distance_after": 2,
+      "centrality_lift": 0.000294
+    },
+    {
+      "gap_id": "gap_struct_799fabc3",
+      "node_a": "health care",
+      "node_b": "consolidated standards of reporting trials",
+      "distance_before": 2,
+      "distance_after": 2,
+      "centrality_lift": 0.000294
+    },
+    {
+      "gap_id": "gap_struct_2a7133d8",
+      "node_a": "health care",
+      "node_b": "scope (computer science)",
+      "distance_before": 2,
+      "distance_after": 2,
+      "centrality_lift": 0.000294
+    },
+    {
+      "gap_id": "gap_struct_4c755c25",
+      "node_a": "health care",
+      "node_b": "cohort study",
+      "distance_before": 2,
+      "distance_after": 2,
+      "centrality_lift": 0.000294
+    },
+    {
+      "gap_id": "gap_struct_03be348a",
+      "node_a": "psychological intervention",
+      "node_b": "evidence-based medicine",
+      "distance_before": 2,
+      "distance_after": 2,
+      "centrality_lift": 7e-05
+    }
+  ],
+  "unlocked_count": 6,
+  "affected_nodes": [
+    "health care",
+    "evidence-based medicine",
+    "quality (philosophy)",
+    "conceptual framework",
+    "implementation research",
+    "qualitative research",
+    "field (mathematics)",
+    "computational biology",
+    "set (abstract data type)",
+    "process management",
+    "knowledge management",
+    "context (archaeology)",
+    "logistic regression",
+    "management science",
+    "applied psychology",
+    "sustainability",
+    "computational chemistry",
+    "machine learning",
+    "lisrel",
+    "social psychology"
+  ],
+  "demo_gap_id": "gap_struct_d5845d27"
+}

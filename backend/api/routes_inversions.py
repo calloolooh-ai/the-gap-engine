@@ -3,9 +3,14 @@ Type-C inversion ("Antimatter Query") and Cascade Map API routes.
 """
 from __future__ import annotations
 
+import json
+
 from fastapi import APIRouter, HTTPException
 
+from config import DATA_DIR
 from state import jobs
+
+_DEMO_CASCADE_PATH = DATA_DIR / "example_cascade.json"
 
 router = APIRouter(tags=["inversions"])
 
@@ -45,6 +50,14 @@ async def get_inversions(job_id: str) -> dict:
     inversions = detect_inversions(papers, valid)
     job["inversions"] = inversions
     return {"job_id": job_id, "inversions": inversions}
+
+
+@router.get("/cascade/demo")
+async def get_cascade_demo() -> dict:
+    """Return the precomputed cascade for the top demo gap."""
+    if not _DEMO_CASCADE_PATH.exists():
+        raise HTTPException(status_code=404, detail="Demo cascade not found. Run scripts/generate_demo_cascade.py")
+    return json.loads(_DEMO_CASCADE_PATH.read_text())
 
 
 @router.get("/cascade/{job_id}/{gap_id}")

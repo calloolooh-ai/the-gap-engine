@@ -23,7 +23,7 @@ Deadline: **June 30, 2026, 5:00pm IST**.
 
 - [ ] **H3. Cross-domain detector quality** — replace bag-of-words token overlap with real OpenAlex concept-score vectors; raise cosine threshold; make bridging concepts actual concept names not word fragments.
 - [ ] **H4. Precompute cascade for demo** — cascade only fires on live builds; precompute one cascade entry for a demo gap so "unlocks N downstream discoveries" is visible without a live build.
-- [ ] **MongoDB live + share link** — wire real `MONGODB_URI` and add a "Share this map" button in the UI that returns a permalink (sponsor prize 2×$150).
+- [x] **MongoDB live + share link** — wire real `MONGODB_URI` and add a "Share this map" button in the UI that returns a permalink (sponsor prize 2×$150).
 
 ## 📌 Parked (do after submission or if time)
 

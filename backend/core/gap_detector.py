@@ -124,20 +124,29 @@ def _detect_structural_gaps(G: nx.Graph) -> list[Gap]:
 # Type B — cross-domain gaps
 # ---------------------------------------------------------------------------
 
+_MIN_COMMUNITY_SIZE = 3   # skip tiny communities that produce noisy gaps
+_CROSS_COSINE_THRESHOLD = 0.15  # raised from 0.05 to cut near-random overlap
+
+
 def _detect_cross_domain_gaps(G: nx.Graph) -> list[Gap]:
     """
     Group nodes by community. For each pair of communities from different
     primary fields with NO inter-community edges, compute concept-vector
-    cosine similarity. High similarity + no edges = cross-domain gap.
+    cosine similarity using actual concept node names weighted by paper_count.
+    High similarity + no edges = cross-domain gap.
     """
-    # Group nodes by community
+    # Group nodes by community; skip communities below minimum size
     comm_nodes: defaultdict[int, list[str]] = defaultdict(list)
     for node, data in G.nodes(data=True):
         cid = data.get("community_id", 0)
         comm_nodes[cid].append(node)
 
-    # Build a simple bag-of-words vector per community from node labels
-    # Use character n-grams as a lightweight embedding
+    # Filter out small communities
+    comm_nodes = defaultdict(list, {
+        cid: nodes for cid, nodes in comm_nodes.items()
+        if len(nodes) >= _MIN_COMMUNITY_SIZE
+    })
+
     all_communities = list(comm_nodes.keys())
     if len(all_communities) < 2:
         return []
@@ -151,30 +160,25 @@ def _detect_cross_domain_gaps(G: nx.Graph) -> list[Gap]:
             return "Unknown"
         return max(field_counts, key=field_counts.__getitem__)
 
-    # Build vocabulary: all unique tokens from all node labels
-    vocab: dict[str, int] = {}
-    for node in G.nodes():
-        for tok in node.split():
-            if tok not in vocab:
-                vocab[tok] = len(vocab)
-
-    V = len(vocab)
+    # Build vocabulary from actual concept node names (not word tokens).
+    # Each node IS a concept; use node names as the feature space.
+    all_concept_nodes = list(G.nodes())
+    concept_idx: dict[str, int] = {c: i for i, c in enumerate(all_concept_nodes)}
+    V = len(concept_idx)
     if V == 0:
         return []
 
     def _community_vector(cid: int) -> np.ndarray:
+        # Weight each concept node by its paper_count within this community
         vec = np.zeros(V, dtype=float)
         for node in comm_nodes[cid]:
-            pc = G.nodes[node].get("paper_count", 1)
-            for tok in node.split():
-                idx = vocab.get(tok)
-                if idx is not None:
-                    vec[idx] += pc
+            idx = concept_idx.get(node)
+            if idx is not None:
+                vec[idx] = G.nodes[node].get("paper_count", 1)
         norm = np.linalg.norm(vec)
         return vec / norm if norm > 0 else vec
 
     comm_vecs = {cid: _community_vector(cid) for cid in all_communities}
-    # Convert to sets for O(1) membership tests
     comm_sets: dict[int, set[str]] = {cid: set(nodes) for cid, nodes in comm_nodes.items()}
 
     gaps: list[Gap] = []
@@ -197,7 +201,7 @@ def _detect_cross_domain_gaps(G: nx.Graph) -> list[Gap]:
             continue  # already connected
 
         sim = float(np.dot(comm_vecs[cid_a], comm_vecs[cid_b]))
-        if sim > 0.05:  # meaningfully similar
+        if sim > _CROSS_COSINE_THRESHOLD:
             scored.append((sim, cid_a, cid_b))
 
     scored.sort(key=lambda x: x[0], reverse=True)
@@ -216,10 +220,25 @@ def _detect_cross_domain_gaps(G: nx.Graph) -> list[Gap]:
             key=lambda n: G.nodes[n].get("paper_count", 0),
         )
 
-        # Bridging concepts: tokens that appear in both communities
-        tokens_a = set(tok for n in comm_nodes[cid_a] for tok in n.split())
-        tokens_b = set(tok for n in comm_nodes[cid_b] for tok in n.split())
-        bridging = list(tokens_a & tokens_b)[:5]
+        # Bridging concepts: actual concept nodes whose names appear (as
+        # substrings) in both communities' node labels — multi-word phrases only.
+        # Ranked by paper_count of the shared concept node.
+        labels_a = set(n.lower() for n in comm_nodes[cid_a])
+        labels_b = set(n.lower() for n in comm_nodes[cid_b])
+        shared = [
+            n for n in G.nodes()
+            if len(n) > 6 and " " in n  # multi-word concept names only
+            and n.lower() in labels_a
+            and n.lower() in labels_b
+        ]
+        # Fall back to nodes from either community whose label overlaps both
+        if not shared:
+            shared = [
+                n for n in list(comm_nodes[cid_a]) + list(comm_nodes[cid_b])
+                if len(n) > 6 and " " in n
+                and any(n.lower() in lbl or lbl in n.lower() for lbl in labels_b)
+            ]
+        bridging = sorted(shared, key=lambda n: G.nodes[n].get("paper_count", 0), reverse=True)[:3]
 
         gap = Gap(
             gap_id=f"gap_cross_{uuid.uuid4().hex[:8]}",

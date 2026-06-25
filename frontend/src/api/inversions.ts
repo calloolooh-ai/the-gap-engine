@@ -11,3 +11,7 @@ export function getCascade(
 ): Promise<CascadeResult> {
   return apiFetch<CascadeResult>(`/cascade/${jobId}/${gapId}`);
 }
+
+export function getDemoCascade(): Promise<CascadeResult> {
+  return apiFetch<CascadeResult>("/cascade/demo");
+}

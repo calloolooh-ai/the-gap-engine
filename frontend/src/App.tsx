@@ -12,18 +12,21 @@ import { StatusBar } from "./components/StatusBar";
 import { LoadingOverlay } from "./components/LoadingOverlay";
 import { Onboarding, shouldShowOnboarding } from "./components/Onboarding";
 import { InversionPanel } from "./components/InversionPanel";
-import type { BuildRequest, HistoricalValidationResult } from "./types";
+import { ShareButton } from "./components/ShareButton";
+import { apiFetch } from "./api/client";
+import type { BuildRequest, HistoricalValidationResult, GraphExport, Gap } from "./types";
 
 function App() {
-  const { gapId: urlGapId } = useParams<{ gapId?: string }>();
+  const { gapId: urlGapId, shareId } = useParams<{ gapId?: string; shareId?: string }>();
   const navigate = useNavigate();
 
   const [selectedGapId, setSelectedGapId] = useState<string | null>(urlGapId ?? null);
   const [isHistorical, setIsHistorical] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(shouldShowOnboarding);
+  const [sharedGraph, setSharedGraph] = useState<import("./types").GraphExport | null>(null);
 
   const { graphData, isBuilding, progress, stage, error: buildError, startBuild, loadDemo } = useGraphData();
-  const { gaps, loadDemoGaps, fetchGaps } = useGaps();
+  const { gaps, loadDemoGaps, fetchGaps, setGaps } = useGaps();
   const {
     result: historicalResult,
     isRunning: isHistoricalRunning,
@@ -49,6 +52,17 @@ function App() {
   useEffect(() => {
     if (urlGapId) setSelectedGapId(urlGapId);
   }, [urlGapId]);
+
+  // Auto-load a shared graph when navigating to /share/:shareId
+  useEffect(() => {
+    if (!shareId) return;
+    apiFetch<{ graph?: GraphExport; gaps?: Gap[] }>(`/persistence/${shareId}`)
+      .then((doc) => {
+        if (doc.graph) setSharedGraph(doc.graph);
+        if (doc.gaps?.length) setGaps(doc.gaps);
+      })
+      .catch(() => {/* silently fall back to demo on error */});
+  }, [shareId]);
 
   const handleBuild = useCallback(
     async (req: BuildRequest) => {
@@ -81,7 +95,7 @@ function App() {
 
   const activeGraphData = isHistorical && historicalResult
     ? historicalResult.graph_export
-    : graphData;
+    : sharedGraph ?? graphData;
 
   const activeGaps = isHistorical && historicalResult && historicalResult.engine_gap
     ? [historicalResult.engine_gap]
@@ -105,7 +119,6 @@ function App() {
               graphData={activeGraphData}
               onBuild={handleBuild}
             />
-            <InversionPanel graphData={activeGraphData} />
             <ModeToggle
               isHistorical={isHistorical}
               isRunning={isHistoricalRunning}
@@ -164,6 +177,8 @@ function App() {
         </div>
       </div>
 
+      <InversionPanel graphData={activeGraphData} />
+      <ShareButton graphData={activeGraphData} gaps={activeGaps} />
     </>
   );
 }
