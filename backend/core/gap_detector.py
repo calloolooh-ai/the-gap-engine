@@ -11,14 +11,41 @@ Type B — cross-domain:
 """
 from __future__ import annotations
 
+import re
 import uuid
 from collections import defaultdict
 from itertools import combinations
 
+import math
+
 import networkx as nx
-import numpy as np
 
 from models.gap import Gap, GapEvidence, PaperRef
+
+# Parentheses signal Wikipedia disambiguation suffixes like "simple (philosophy)"
+_DISAMBIG_RE = re.compile(r'\(')
+
+# Meta/philosophical single words that produce noisy bridging concepts
+_CONCEPT_STOPWORDS = frozenset({
+    "matter", "form", "logic", "theory", "method", "system", "model",
+    "process", "analysis", "study", "science", "research", "approach",
+    "simple", "complex", "general", "basic", "applied", "nature",
+    "structure", "function", "behavior", "property", "type", "class",
+})
+
+
+def _is_valid_bridging_concept(name: str) -> bool:
+    """Accept only clean, multi-word scientific concept names as bridging concepts."""
+    if _DISAMBIG_RE.search(name):
+        return False
+    parts = name.lower().split()
+    if len(parts) < 2:
+        return False
+    if len(name) < 8:
+        return False
+    if all(w in _CONCEPT_STOPWORDS for w in parts):
+        return False
+    return True
 
 # Maximum number of candidates to evaluate (performance guard)
 _MAX_STRUCTURAL_CANDIDATES = 5000
@@ -168,15 +195,14 @@ def _detect_cross_domain_gaps(G: nx.Graph) -> list[Gap]:
     if V == 0:
         return []
 
-    def _community_vector(cid: int) -> np.ndarray:
-        # Weight each concept node by its paper_count within this community
-        vec = np.zeros(V, dtype=float)
+    def _community_vector(cid: int) -> list[float]:
+        vec = [0.0] * V
         for node in comm_nodes[cid]:
             idx = concept_idx.get(node)
             if idx is not None:
                 vec[idx] = G.nodes[node].get("paper_count", 1)
-        norm = np.linalg.norm(vec)
-        return vec / norm if norm > 0 else vec
+        norm = math.sqrt(sum(x * x for x in vec))
+        return [x / norm for x in vec] if norm > 0 else vec
 
     comm_vecs = {cid: _community_vector(cid) for cid in all_communities}
     comm_sets: dict[int, set[str]] = {cid: set(nodes) for cid, nodes in comm_nodes.items()}
@@ -200,7 +226,7 @@ def _detect_cross_domain_gaps(G: nx.Graph) -> list[Gap]:
         if inter_edges > 0:
             continue  # already connected
 
-        sim = float(np.dot(comm_vecs[cid_a], comm_vecs[cid_b]))
+        sim = sum(a * b for a, b in zip(comm_vecs[cid_a], comm_vecs[cid_b]))
         if sim > _CROSS_COSINE_THRESHOLD:
             scored.append((sim, cid_a, cid_b))
 
@@ -220,22 +246,21 @@ def _detect_cross_domain_gaps(G: nx.Graph) -> list[Gap]:
             key=lambda n: G.nodes[n].get("paper_count", 0),
         )
 
-        # Bridging concepts: actual concept nodes whose names appear (as
-        # substrings) in both communities' node labels — multi-word phrases only.
-        # Ranked by paper_count of the shared concept node.
+        # Bridging concepts: actual concept nodes whose names appear in both
+        # communities' node labels. Only accept clean multi-word scientific terms.
         labels_a = set(n.lower() for n in comm_nodes[cid_a])
         labels_b = set(n.lower() for n in comm_nodes[cid_b])
         shared = [
             n for n in G.nodes()
-            if len(n) > 6 and " " in n  # multi-word concept names only
+            if _is_valid_bridging_concept(n)
             and n.lower() in labels_a
             and n.lower() in labels_b
         ]
-        # Fall back to nodes from either community whose label overlaps both
+        # Fall back to overlap by substring across communities
         if not shared:
             shared = [
                 n for n in list(comm_nodes[cid_a]) + list(comm_nodes[cid_b])
-                if len(n) > 6 and " " in n
+                if _is_valid_bridging_concept(n)
                 and any(n.lower() in lbl or lbl in n.lower() for lbl in labels_b)
             ]
         bridging = sorted(shared, key=lambda n: G.nodes[n].get("paper_count", 0), reverse=True)[:3]
