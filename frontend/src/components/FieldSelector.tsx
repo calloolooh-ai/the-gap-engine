@@ -18,6 +18,8 @@ interface Props {
   onBuild: (req: BuildRequest) => void;
 }
 
+const IS_DEMO = !["localhost", "127.0.0.1"].includes(window.location.hostname);
+
 export const FieldSelector: React.FC<Props> = ({
   isBuilding,
   graphData,
@@ -154,24 +156,27 @@ export const FieldSelector: React.FC<Props> = ({
 
       <button
         onClick={handleBuild}
-        disabled={isBuilding || selected.size === 0}
-        style={styles.buildBtn}
+        disabled={isBuilding || selected.size === 0 || IS_DEMO}
+        title={IS_DEMO ? "Requires local backend — see GitHub to run locally" : undefined}
+        style={{ ...styles.buildBtn, ...(IS_DEMO ? styles.buildBtnDisabled : {}) }}
       >
         {isBuilding ? "Building…" : "Build Graph"}
       </button>
 
-      <p style={styles.backendNote}>
-        Live builds require the{" "}
-        <a
-          href="https://github.com/calloolooh-ai/the-gap-engine"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={styles.backendLink}
-        >
-          local backend
-        </a>
-        . The demo graph above is fully functional.
-      </p>
+      {IS_DEMO && (
+        <p style={styles.backendNote}>
+          Hosted demo — live builds need the{" "}
+          <a
+            href="https://github.com/calloolooh-ai/the-gap-engine"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={styles.backendLink}
+          >
+            local backend
+          </a>
+          . The example graph is fully functional.
+        </p>
+      )}
 
       {graphData && (
         <div style={styles.stats}>
@@ -321,6 +326,12 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 13,
     borderRadius: 6,
     letterSpacing: "0.02em",
+    cursor: "pointer",
+  },
+  buildBtnDisabled: {
+    background: "#2d2d2d",
+    color: "#4b5563",
+    cursor: "not-allowed",
   },
   backendNote: {
     margin: "0 16px 14px",
