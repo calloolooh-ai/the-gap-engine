@@ -163,6 +163,70 @@ export const mockGraphExport: GraphExport = {
   built_at: "2005-01-01T00:00:00Z",
 };
 
+export const mockGaps: Gap[] = [
+  {
+    gap_id: "gap_001",
+    type: "cross_domain",
+    node_a: "network topology",
+    node_b: "epidemiology",
+    bridging_concepts: ["scale-free topology", "hub nodes", "transmission networks"],
+    field_a: "Computer Science",
+    field_b: "Medicine",
+    leverage_score: 87,
+    score_components: {
+      betweenness_centrality: 0.87,
+      community_reach: 0.92,
+      citation_momentum: 0.78,
+      cross_domain_bonus: 1.0,
+    },
+    question: {
+      gap_id: "gap_001",
+      question:
+        "Do scale-free network properties — specifically the power-law degree distribution seen in internet routing graphs — govern epidemic thresholds in human contact networks, implying that targeting high-degree 'hub' individuals could eliminate disease spread even without achieving classical herd immunity?",
+      why_matters:
+        "If contact networks follow a scale-free topology, the epidemic threshold approaches zero, meaning pathogens can spread at arbitrarily low transmission rates. Identifying and vaccinating hub nodes could collapse transmission chains far more efficiently than uniform vaccination strategies.",
+      historical_analogy:
+        "Barabási & Albert (1999) showed the internet follows a power-law degree distribution. Pastor-Satorras & Vespignani (2001) then applied this to epidemic spreading — overturning classical SIR model assumptions and reshaping vaccination strategy for two decades.",
+      model_used: "mock",
+      generated_at: "2005-01-01T00:00:00Z",
+    },
+  },
+  {
+    gap_id: "gap_002",
+    type: "structural",
+    node_a: "topological data analysis",
+    node_b: "protein folding",
+    bridging_concepts: ["persistent homology", "shape descriptors"],
+    field_a: "Mathematics",
+    field_b: "Biology",
+    leverage_score: 74,
+    score_components: {
+      betweenness_centrality: 0.74,
+      community_reach: 0.80,
+      citation_momentum: 0.65,
+      cross_domain_bonus: 1.0,
+    },
+    question: null,
+  },
+  {
+    gap_id: "gap_003",
+    type: "cross_domain",
+    node_a: "active matter",
+    node_b: "neural dynamics",
+    bridging_concepts: ["collective motion", "self-organization"],
+    field_a: "Physics",
+    field_b: "Neuroscience",
+    leverage_score: 61,
+    score_components: {
+      betweenness_centrality: 0.58,
+      community_reach: 0.71,
+      citation_momentum: 0.55,
+      cross_domain_bonus: 1.0,
+    },
+    question: null,
+  },
+];
+
 export const mockGap: Gap = {
   gap_id: "gap_001",
   type: "cross_domain",
@@ -181,7 +245,7 @@ export const mockGap: Gap = {
   score_components: {
     betweenness_centrality: 0.34,
     community_reach: 0.91,
-    paper_velocity: 0.62,
+    citation_momentum: 0.62,
     cross_domain_bonus: 0.25,
   },
   question: {

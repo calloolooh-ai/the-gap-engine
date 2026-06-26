@@ -113,21 +113,10 @@ export function useGraphData(): GraphDataState {
   );
 
   const loadDemo = useCallback(async () => {
-    if (USE_MOCK) {
-      setGraphData(mockGraphExport);
-      setStage("complete");
-      setProgress(100);
-      return;
-    }
-    try {
-      const { getDemoExport } = await import("../api/graph");
-      const data = await getDemoExport();
-      setGraphData(data);
-      setStage("complete");
-      setProgress(100);
-    } catch (e) {
-      setError((e as Error).message);
-    }
+    setGraphData(mockGraphExport);
+    setStage("complete");
+    setProgress(100);
+    setError(null);
   }, []);
 
   return { graphData, isBuilding, progress, stage, error, startBuild, loadDemo };

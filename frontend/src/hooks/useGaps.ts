@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import type { Gap } from "../types";
-import { scoreGaps, getDemoGaps } from "../api/gaps";
+import { scoreGaps } from "../api/gaps";
+import { mockGaps } from "../api/mockData";
 
 interface GapsState {
   gaps: Gap[];
@@ -30,16 +31,8 @@ export function useGaps(): GapsState {
   }, []);
 
   const loadDemoGaps = useCallback(async () => {
-    setIsLoading(true);
+    setGaps(mockGaps);
     setError(null);
-    try {
-      const data = await getDemoGaps();
-      setGaps(data);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
   }, []);
 
   return { gaps, isLoading, error, fetchGaps, loadDemoGaps, setGaps };
