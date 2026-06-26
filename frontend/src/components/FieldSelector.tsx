@@ -160,6 +160,19 @@ export const FieldSelector: React.FC<Props> = ({
         {isBuilding ? "Building…" : "Build Graph"}
       </button>
 
+      <p style={styles.backendNote}>
+        Live builds require the{" "}
+        <a
+          href="https://github.com/calloolooh-ai/the-gap-engine"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={styles.backendLink}
+        >
+          local backend
+        </a>
+        . The demo graph above is fully functional.
+      </p>
+
       {graphData && (
         <div style={styles.stats}>
           <div style={styles.statRow}>
@@ -179,7 +192,7 @@ export const FieldSelector: React.FC<Props> = ({
           <div style={styles.statRow}>
             <span style={styles.statLabel}>Communities</span>
             <span style={styles.statValue}>
-              {Object.keys(graphData.communities).length}
+              {Object.keys(graphData.communities ?? {}).length}
             </span>
           </div>
         </div>
@@ -300,7 +313,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#4b5563",
   },
   buildBtn: {
-    margin: "14px 16px",
+    margin: "14px 16px 4px",
     padding: "9px 0",
     background: "#f59e0b",
     color: "#0f0f0f",
@@ -308,6 +321,17 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 13,
     borderRadius: 6,
     letterSpacing: "0.02em",
+  },
+  backendNote: {
+    margin: "0 16px 14px",
+    fontSize: 11,
+    color: "#4b5563",
+    lineHeight: 1.5,
+    textAlign: "center" as const,
+  },
+  backendLink: {
+    color: "#6b7280",
+    textDecoration: "underline",
   },
   stats: {
     padding: "12px 16px",

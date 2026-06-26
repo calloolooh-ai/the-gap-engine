@@ -255,11 +255,28 @@ function PartialWarning({ fields }: { fields: string[] }) {
 }
 
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const isNoBackend = message.toLowerCase().includes("fetch") || message.toLowerCase().includes("network");
   return (
     <div style={emptyStyles.container}>
       <div style={{ fontSize: 48, color: "#ef4444" }}>✗</div>
       <h2 style={{ ...emptyStyles.title, color: "#ef4444" }}>Build Failed</h2>
-      <p style={emptyStyles.subtitle}>{message}</p>
+      {isNoBackend ? (
+        <p style={emptyStyles.subtitle}>
+          Live builds require the Python backend running locally on port 8000.
+          This hosted demo only supports the example graph.{" "}
+          <a
+            href="https://github.com/calloolooh-ai/the-gap-engine"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "#f59e0b" }}
+          >
+            Clone the repo
+          </a>{" "}
+          to run live builds.
+        </p>
+      ) : (
+        <p style={emptyStyles.subtitle}>{message}</p>
+      )}
       <button style={emptyStyles.demoBtn} onClick={onRetry}>
         Load Example Graph
       </button>
